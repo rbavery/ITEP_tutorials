@@ -1,10 +1,15 @@
 ---
-title: "R Notebook"
+title: "R Plotting and Mapping Tutorial for the Institute for Tribal Environmental Professionals"
 output:
   pdf_document: default
-  html_notebook: default
+  html_notebook: github_document
 ---
 
+# Downloading this tutorial
+
+If you are familiar with Github and `git clone` you can clone this repository to start. Or, you can download this repository as a zip file and then unzip it (preferably to the Desktop so that you can easily find it.)
+
+# What is RMarkdown?
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
@@ -19,56 +24,73 @@ When you save the notebook, an HTML file containing the code and output will be 
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 
+# Plotting and Mapping Temperature Station Data in R
+We will be plotting hourly, multi-annual temperature data from the Mattamiscontis watershed in Maine and associating it with a spatial plot of the site locations. Our goal is to understand how trends in temperature vary across both time and space. We will make use of modern R libraries that let us do more with less lines of code. In the end we will be able to generate a report from our code with just our plots and description, which will hopefully look good enough to submit to your colleague/manager/agency/publication. We'll also check out the mapplots library if we have time and think about how we could adapt a ready made example to our own data.
 
 To start we will need the following packages installed.
 
 ```{r, include=FALSE}
-package_list <- c("cli", "devtools", "tidyverse", "tsibble", "readxl", "units", "sf", "mapplots", "ggthemes")
+# the following will install packages if you don't have them and then load them into your R session. 
+# If you run into errors, look at the error message in the console. Usually you need to install something else, 
+# either inside or outside of R and then retry installing by running this code again.
+
+package_list <- c("cli", "devtools", "tidyverse", "readxl", "units", "sf", "mapplots", "ggthemes", "scales")
 for (package in package_list){
   (if (! package %in% installed.packages())
     {install.packages(package, dependencies = TRUE)})
   require(package, character = TRUE)
 }
 install_github("Displayr/flipTime") # for converting date formats so we can plot the data
+install_github('Chrisjb/basemapR')
 library("flipTime")
+library("basemapR")
 ```
 
 
-# Data Description (courtesy of Angie Reed)
-1. a bunch of csv files with data in them
-  a. Each of these files has the site name at the start, before the first underscore.
-    i. These site names match one (or more) listed in column A of the file described in #3.
-  b. These files are what get created when we export raw sensor data from our temperature recorders to a csv.  They add stupid stuff to the first row and to the column header for the temperature data.  You could ignore the first two rows, delete the first column and rename the remaining two columns Datetime and Temperature.  They should all be in degrees C.
-  c. For the mapping exercise perhaps we could just plot the temperature over time and add each of the graphs for each site to their corresponding location?
-2. a zipped folder inside of that which has the files needed for the watershed boundary shapefile
-3. an excel file that has coordinates for each of the sites that have data in the csv files
-  a. The file called PIN_MattamiscontisSites_LDRTimes.xlsx has the lat and long values for each site, along with some other information.  There are sometimes multiple rows for the same site, which has to do with keeping track of when we downloaded the file and what times to clip out of the data.  So perhaps you could just get the unique row for each site to get the lat and longs?
+# Data Description and Tasks To Do in R (courtesy of Angie Reed)
+Our data/ is located in the PINTempData folder. It contains ...
 
+1. An excel file that has coordinates for each of the Penobscot Indian Nation's temperature sensor sites that have data in the csv files
+    + The file called PIN_MattamiscontisSites_LDRTimes.xlsx has the lat and long values for each temperature sensor site, along with some other information. There are sometimes multiple rows for the same site, which has to do with keeping track of when we downloaded the file and what times to clip out of the data. **We need to get just one unique row entry for each site so that we can plot each site once along with the watershed boundary.**
+2. a zipped folder inside of that which has the files needed for the watershed boundary shapefile. **We need to plot this with the station data locations to give context to our timeseries plot**
+3. A bunch of csv files with temperature station data in them
+    + Each of these files has the site name at the start, before the first underscore. These site names match the sites in the file described in #3.
+    + These files come from the temperature recorders in csv (comma seperated value) format. **We need to ignore the first two rows, ignore the first column and rename the remaining two columns to Date and Celsius so that the data re ready to be plotted**
+    + Once our data is cleaned, **we need to plot the temperature over time with a legend that matches our spatial plot of the site locations and watershed boundary**
+
+
+Throughout this tutorial we will breakdown what is going on in each code chunk line by line. We will create new code chunks on the fly with the *Ctrl+Alt+I* keyboard shortcut to inspect the output of code lines.
 
 ```{r, include = FALSE}
-aoi_boundary = st_read("data/PINTempData/penwatsd.shp")
+aoi_boundary = st_read("./PINTempData/penwatsd.shp")
 aoi_boundary = st_transform(aoi_boundary, crs= 4326) # we need to project this to EPSG 4326 so we can limit the map bounds
+aoi_boundary = aoi_boundary[4:5,]
 st_geometry_type(aoi_boundary) # printing useful metadata
-st_bbox(aoi_boundary)
+aoi_bbox = st_bbox(aoi_boundary)
 
-site_df = read_excel("data/PINTempData/PIN_MattamiscontisSites_LDRTimes.xlsx") # this function comes from the tidyverse library
+site_df = read_excel("./PINTempData/PIN_MattamiscontisSites_LDRTimes.xlsx") # this function comes from the tidyverse library
 site_ids = unique(site_df$site) # removes multiple duplicate entries for each site id
 site_locations_df = unique(site_df[,1:3])[-c(4,5),] # there are some extra sites for which we don't have temp data and extra columns we don't need, so we remove them.
 # assume site location points collected with WGS 84 datum, or epsg 4326
 site_points_df = st_as_sf(site_locations_df, coords = c("longitude", "latitude"), crs=4326)
 ```
 
-```{r echo=FALSE}
+Note: Non-important messages and warnings that are generated by our code have been ignored so that only the plots are presented in the report.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.height = 8, fig.width = 6}
+
 # plot both site locations and some of the watershed boundaries that intersect witht he points
 ggplot() + 
-  geom_sf(data = aoi_boundary[4:5,], size = 1, color = "black", fill= "blue") + 
-  geom_sf(data = site_points_df, color = "red") +
-  coord_sf(xlim = c(-68.9, -68.4), ylim = c(45.8, 45.2)) +
-  ggtitle("Mattamiscontis Watershed Boundaries")
+  base_map(st_bbox(aoi_bbox), basemap = 'hydda', nolabels = FALSE, increase_zoom=5) + # this must be first or else it will cover your other data
+  geom_sf(data = aoi_boundary, size = 1, color = "black", fill= NA) + 
+  geom_sf(data = site_points_df, aes(col=site), size = 3) +
+  coord_sf(xlim = c(-68.9, -68.4), ylim = c(45.7, 45.25)) +
+  ggtitle("Mattamiscontis Watershed Boundaries and Temperature Sites") 
 ```
 
+attribution: Tiles courtesy of http://openstreetmap.se/ OpenStreetMap Sweden; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors
 
-```{r include = FALSE}
+```{r include = FALSE, warning=FALSE}
 read_and_rename <- function(path, site_name){
 df = read_csv(path, skip=1, )[,2:3]
 df = df %>% 
@@ -77,40 +99,34 @@ df = df %>%
 df$Date = AsDateTime(df$Date, time.zone="America/New_York")
 df = df %>% distinct(Date, .keep_all = TRUE) #The option .kep_all is used to keep all variables in the data. There were some duplicate times recorded, this removes them
 df$site_name = site_name
-#df = as_tsibble(df, key=site_name, index=Date, regular=TRUE)
 return(df)
 }
 
-EBLO = read_and_rename("./data/PINTempData/EBLO1_365_20020054_20190912.csv", "EBLO")
-JAB = read_and_rename("./data/PINTempData/JAB1_365_20020058_20190910.csv", "JAB")
-MLI = read_and_rename("./data/PINTempData/MLI_365_20020055_20190912.csv", "MLI")
-MLO = read_and_rename("./data/PINTempData/MLO_365_10756015_20180705.csv", "MLO")
-MOB = read_and_rename("./data/PINTempData/MOB1_365_20020056_20190926.csv", "MOB")
-SA = read_and_rename("./data/PINTempData/SA_365_10756016_20190926.csv", "SA")
-SBLO = read_and_rename("./data/PINTempData/SBLO1_365_20020047_20190910.csv", "SBLO")
-SAF = read_and_rename("./data/PINTempData/SAF_365_10756026_20190910.csv", "SAF")
-TMAS = read_and_rename("./data/PINTempData/TMAS_365_10756014_20190910.csv", "TMAS")
+EBLO = read_and_rename("./PINTempData/EBLO1_365_20020054_20190912.csv", "EBLO")
+JAB = read_and_rename("./PINTempData/JAB1_365_20020058_20190910.csv", "JAB")
+MLI = read_and_rename("./PINTempData/MLI_365_20020055_20190912.csv", "MLI")
+MLO = read_and_rename("./PINTempData/MLO_365_10756015_20180705.csv", "MLO")
+MOB = read_and_rename("./PINTempData/MOB1_365_20020056_20190926.csv", "MOB")
+SA = read_and_rename("./PINTempData/SA_365_10756016_20190926.csv", "SA")
+SBLO = read_and_rename("./PINTempData/SBLO1_365_20020047_20190910.csv", "SBLO")
+SAF = read_and_rename("./PINTempData/SAF_365_10756026_20190910.csv", "SAF")
+TMAS = read_and_rename("./PINTempData/TMAS_365_10756014_20190910.csv", "TMAS")
 ```
 
-
-```{r, echo = FALSE, fig.height = 8, fig.width = 10}
-library(scales)
-library(ggthemes)
-
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height = 8, fig.width = 10}
 all_sites_df = rbind(EBLO, JAB, MLI, MOB, SA, SBLO, SAF, TMAS) # MLO removed since it doesn't cover the same period
 
 ggplot(data = all_sites_df, aes(x = Date, y = Celsius, col = site_name), aspect.ratio=1) +
-  geom_smooth() + 
+  geom_smooth() + # without smoothing, the plots aren't as interpretable for this kind of long term comparison.
   ggtitle("Daily Temperature in Celsius in the Mattamiscontis Watershed, Smoothed") +
   scale_x_datetime(date_breaks = "month", labels = date_format("%b-%y")) +
   theme_economist()
-  
-  
 ```
 
-
+And here is an example of including code and the resulting plot in a report.
 ```{r}
-# This example is sourced from https://www.rdocumentation.org/packages/mapplots/versions/1.5.1/topics/draw.xy
+# This example is sourced from 
+# https://www.rdocumentation.org/packages/mapplots/versions/1.5.1/topics/draw.xy
 data(effort)
 data(coast)
 xlim <- c(-12,-5)
@@ -131,6 +147,11 @@ legend("topleft", c(month.abb,"Effort"), pch=c(rep(22,12),16), pt.bg=c(col,NA),
  inset=0.02, title="Landings", cex=0.8)
 ```
 
+Final Advice
+
+The resources recommended here are high-quality, free, and there are different options depending on whether you are completely new to R/Rstudio or want to learn about a particular topic: https://www.tidyverse.org/learn/
+
+When using R, generally expect that someone else has already writtena function to help you out. In the course of making this lesson I discovered the packages `readxl` for reading excel data, `scales` for controlling the frequency and placement of x axis labels, flipTime for converting characters to Date objects, and basemapR for fetching basemaps from online providers to use in in ggplots. Your browser is your best friend when it comes to coding and websites like StackOverflow provide many useful code examples and answers to common R questions.
 
 
 
