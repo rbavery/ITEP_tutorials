@@ -1,0 +1,157 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r, include=FALSE}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+To start we will need the following packages installed.
+
+```{r, include=FALSE}
+package_list <- c("cli", "devtools", "tidyverse", "tsibble", "readxl", "units", "sf", "mapplots", "ggthemes")
+for (package in package_list){
+  (if (! package %in% installed.packages())
+    {install.packages(package, dependencies = TRUE)})
+  require(package, character = TRUE)
+}
+install_github("Displayr/flipTime") # for converting date formats so we can plot the data
+library("flipTime")
+```
+
+
+# Data Description (courtesy of Angie Reed)
+1. a bunch of csv files with data in them
+  a. Each of these files has the site name at the start, before the first underscore.
+    i. These site names match one (or more) listed in column A of the file described in #3.
+  b. These files are what get created when we export raw sensor data from our temperature recorders to a csv.  They add stupid stuff to the first row and to the column header for the temperature data.  You could ignore the first two rows, delete the first column and rename the remaining two columns Datetime and Temperature.  They should all be in degrees C.
+  c. For the mapping exercise perhaps we could just plot the temperature over time and add each of the graphs for each site to their corresponding location?
+2. a zipped folder inside of that which has the files needed for the watershed boundary shapefile
+3. an excel file that has coordinates for each of the sites that have data in the csv files
+  a. The file called PIN_MattamiscontisSites_LDRTimes.xlsx has the lat and long values for each site, along with some other information.  There are sometimes multiple rows for the same site, which has to do with keeping track of when we downloaded the file and what times to clip out of the data.  So perhaps you could just get the unique row for each site to get the lat and longs?
+
+
+```{r, include = FALSE}
+aoi_boundary = st_read("data/PINTempData/penwatsd.shp")
+aoi_boundary = st_transform(aoi_boundary, crs= 4326) # we need to project this to EPSG 4326 so we can limit the map bounds
+st_geometry_type(aoi_boundary) # printing useful metadata
+st_bbox(aoi_boundary)
+
+site_df = read_excel("data/PINTempData/PIN_MattamiscontisSites_LDRTimes.xlsx") # this function comes from the tidyverse library
+site_ids = unique(site_df$site) # removes multiple duplicate entries for each site id
+site_locations_df = unique(site_df[,1:3])[-c(4,5),] # there are some extra sites for which we don't have temp data and extra columns we don't need, so we remove them.
+# assume site location points collected with WGS 84 datum, or epsg 4326
+site_points_df = st_as_sf(site_locations_df, coords = c("longitude", "latitude"), crs=4326)
+```
+
+```{r echo=FALSE}
+# plot both site locations and some of the watershed boundaries that intersect witht he points
+ggplot() + 
+  geom_sf(data = aoi_boundary[4:5,], size = 1, color = "black", fill= "blue") + 
+  geom_sf(data = site_points_df, color = "red") +
+  coord_sf(xlim = c(-68.9, -68.4), ylim = c(45.8, 45.2)) +
+  ggtitle("Mattamiscontis Watershed Boundaries")
+```
+
+
+```{r include = FALSE}
+read_and_rename <- function(path, site_name){
+df = read_csv(path, skip=1, )[,2:3]
+df = df %>% 
+  rename_at(1, ~"Date") %>% 
+  rename_at(2, ~"Celsius")
+df$Date = AsDateTime(df$Date, time.zone="America/New_York")
+df = df %>% distinct(Date, .keep_all = TRUE) #The option .kep_all is used to keep all variables in the data. There were some duplicate times recorded, this removes them
+df$site_name = site_name
+#df = as_tsibble(df, key=site_name, index=Date, regular=TRUE)
+return(df)
+}
+
+EBLO = read_and_rename("./data/PINTempData/EBLO1_365_20020054_20190912.csv", "EBLO")
+JAB = read_and_rename("./data/PINTempData/JAB1_365_20020058_20190910.csv", "JAB")
+MLI = read_and_rename("./data/PINTempData/MLI_365_20020055_20190912.csv", "MLI")
+MLO = read_and_rename("./data/PINTempData/MLO_365_10756015_20180705.csv", "MLO")
+MOB = read_and_rename("./data/PINTempData/MOB1_365_20020056_20190926.csv", "MOB")
+SA = read_and_rename("./data/PINTempData/SA_365_10756016_20190926.csv", "SA")
+SBLO = read_and_rename("./data/PINTempData/SBLO1_365_20020047_20190910.csv", "SBLO")
+SAF = read_and_rename("./data/PINTempData/SAF_365_10756026_20190910.csv", "SAF")
+TMAS = read_and_rename("./data/PINTempData/TMAS_365_10756014_20190910.csv", "TMAS")
+```
+
+
+```{r, echo = FALSE, fig.height = 8, fig.width = 10}
+library(scales)
+library(ggthemes)
+
+all_sites_df = rbind(EBLO, JAB, MLI, MOB, SA, SBLO, SAF, TMAS) # MLO removed since it doesn't cover the same period
+
+ggplot(data = all_sites_df, aes(x = Date, y = Celsius, col = site_name), aspect.ratio=1) +
+  geom_smooth() + 
+  ggtitle("Daily Temperature in Celsius in the Mattamiscontis Watershed, Smoothed") +
+  scale_x_datetime(date_breaks = "month", labels = date_format("%b-%y")) +
+  theme_economist()
+  
+  
+```
+
+
+```{r}
+# This example is sourced from https://www.rdocumentation.org/packages/mapplots/versions/1.5.1/topics/draw.xy
+data(effort)
+data(coast)
+xlim <- c(-12,-5)
+ylim <- c(51,54)
+col <- terrain.colors(12)
+effort$col <- col[match(effort$Month,1:12)]
+basemap(xlim, ylim, main = "Monthly trends in haddock landings and fishing effort")
+draw.rect(lty=1, col=1)
+draw.shape(coast, col="cornsilk")
+draw.xy(effort$Lon, effort$Lat, effort$Month, effort$LiveWeight, width=1, height=0.5,
+ col=effort$col, type="h",lwd=3, border=NA)
+draw.xy(effort$Lon, effort$Lat, effort$Month, effort$Effort, width=1, height=0.5, col="red",
+ type="l", border=NA)
+draw.xy(effort$Lon, effort$Lat, effort$Month, effort$Effort, width=1, height=0.5, col="red",
+ type="p",cex=0.4,pch=16, border=NA)
+legend("topleft", c(month.abb,"Effort"), pch=c(rep(22,12),16), pt.bg=c(col,NA),
+ pt.cex=c(rep(2,12),0.8),col=c(rep(1,12),2), lty=c(rep(NA,12),1), bg="lightblue",
+ inset=0.02, title="Landings", cex=0.8)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
