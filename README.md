@@ -3,3 +3,17 @@ Download or clone this repository by navigating to the upper right hand corner w
 If you'd like to continue the learning after the workshop, check out these resources:
 - https://rstudio-conf-2020.github.io/r-for-excel/
 - The books section of https://www.tidyverse.org/learn/
+
+
+
+#### Call 2020-01-30: Mapping tutorial
+
+See mapping_tutorial.rmd and mapping_tutorial.pdf
+
+
+
+#### Call 2020-02-11: R Markdown tutorial
+
+See Test.Rmd and Test.html.
+
+https://swcarpentry.github.io/r-novice-gapminder/15-knitr-markdown/

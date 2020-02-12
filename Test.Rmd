@@ -1,0 +1,64 @@
+---
+title: "Test Document"
+author: "Kunal Marwaha"
+date: "2/11/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# This is the Title
+## Main Section
+### Sub Section
+#### Even smaller section
+
+If you would like to make multiple reports with the same report format, talk to Barbara! You can call a R Markdown document from another R Script.
+
+Also, she recommends using function output when creating text to re-use.
+
+Here is a list.
+
+1. This will be step 1
+2. This is the next step.
+
+```{r get_mean}
+speed_avg <- mean(cars$speed)
+```
+
+```{r kable}
+library(knitr)
+kable(head(iris), format = "html")
+```
+
+If you want to accent something, you can make it **bold**. Or, you can use _italics_.
+
+There are `r 2+1+3+4` sites in our report.
+The average speed in the cars dataset is `r mean(cars$speed)`.
+
+The average speed is `r speed_avg`.
+```{r code_example}
+3+3
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=TRUE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
