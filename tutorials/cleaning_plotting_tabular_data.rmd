@@ -1,0 +1,225 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by placing your cursor in the chunk and pressing *Ctrl+Shift+Enter*. 
+
+
+
+# depending on which ones your data needs cleaned up
+
+# if you edit some rows out, just don't end on a pipe: %>%
+
+# remember that when installing a package it is in quotes
+
+# but to load into library of this project use no quotes
+
+# run each command at a time and record in the console below, by
+
+# entering cntrol-enter anywhere in each line, or group of selected lines
+
+# if you see warnings in red in the console that is often totally ok
+
+# when you see a right-pointing blue caret in the console, then
+
+# R is done and ready for more
+
+# 1st load the base r library
+```{r}
+
+
+install.packages("readr")   # if you have already installed R will restart
+
+                            # which is fine
+
+library(readr)              # this is all you need if you already
+
+                            # did installation of this package to your computer
+```
+
+```{r}
+#figure out where the working directory is
+
+getwd()
+
+# the working directory comes back as my desktop, so i want to change that
+
+# i copied the directory path from internet explorer
+
+# but it comes back w backslashes that i need to change
+
+    #to forward slashes"C:\Users\melinda\Dropbox (NAU)\MelindasFoldersDoNotTouch\MelindasFolders\R training with Helen\WindRose
+
+# i used the Edit menu above to Replace and Find with
+
+# just this text selected to become
+
+# C:/Users/melinda/Dropbox (NAU)/MelindasFoldersDoNotTouch/MelindasFolders/R training with Helen/WindRose")
+
+# now i can set the working directory by
+
+setwd("C:/Users/melinda/Dropbox (NAU)/MelindasFoldersDoNotTouch/MelindasFolders/R training with Helen/WindRose")
+
+# and i go up a few lines and run get() to verify it is in the folder i am working from
+
+ 
+
+#next load the packages we need to read an excel file and change headers
+
+library(readxl)
+
+ 
+
+# load the data into a dataframe called air_data
+
+# i get a red error msg but then the blue caret so we can ignore it
+
+air_data <- read_excel("La_jolla_pm25_wind_data.xls")
+
+ 
+
+# check the names as below
+
+names(air_data)
+
+ 
+
+# i see a lot to fix in my headers (names), as follows
+
+old_names <- names(air_data)  # make object of the old names
+
+old_names                     # R automatically appended a _1 to the
+
+                              # repeated Date name (column header)
+
+# this new object shows up in the environment panel in upper right
+
+# note that it added backslashes \ to before the quotes
+
+# to signify that the dbl quote is part of the string and not an R operator
+
+# next we need to load dplyr to use a pipe, which is like a function, and
+
+# can be thought of as: (x %>% f) means the same as
+
+# f is a function of x, like input-x-goes-to-output which is a
+
+# temporary object in this environment that R can use
+
+ 
+
+install.packages("dplyr")
+
+library(dplyr)
+
+ 
+
+# clean the headers (names) so they do not contain
+
+    # any parentheses or single or double quotation marks, because
+
+    # those are symbols used in some functions, and also to change
+
+    # all upper case to lower case, and no spaces, periods, or plus signs, and
+
+    # that all headers are unique if R did not do that already
+
+old_names <- names(air_data)  # make object of the old names
+
+new_names <- old_names %>%    # make object of the new names to clean up
+
+  gsub("'", "", .)     %>%    # remove single quotation marks
+
+  gsub("\"", "", .) %>%       # remove double quotation marks
+
+  gsub("%", "percent", .) %>% # change the symbol % to the word percent
+
+  gsub("^[ ]+", "", .) %>%    # this finds any plus signs and removes them
+
+                              # the ^ means at the beginning of the string
+
+                              # [] means extract, then the + tells R
+
+                              # to extract a +, then replace w "nothing""
+
+  make.names(.) %>%
+
+  gsub("[.]+", "_", .) %>% # convert 1 or more periods to a single _
+
+  gsub("[_]+", "_", .) %>% # fix multiple consecutive underscores
+
+  tolower(.)               # make all letter lower case
+
+# see what that did anytime by looking at new_names
+
+new_names
+
+# next, check for column names that are not unique
+
+# The next 8 rows adds the column number to any columns with the same name
+
+# not a big deal unless data has many dozens of columns
+
+# R actually did this already in the names(air_data) in row 40
+
+# but in case that did not happen, rows 79-86 will add _i to column name
+
+dupe_count <- vapply(seq_along(new_names), function(i) {
+
+  sum(new_names[i] == new_names[1:i])
+
+}, integer(1))
+
+new_names[dupe_count > 1] <- paste(
+
+  new_names[dupe_count > 1],
+
+  dupe_count[dupe_count > 1],
+
+  sep = "_"
+
+)
+
+ 
+
+# by clicking new_names in the environment pane
+
+# i see the last space turned into an underscore so remove that
+
+# ideally just add the next two lines above before the ) but can do it step-wise
+
+# with another object now we call new_names_1
+
+new_names_1 <- new_names %>% 
+
+gsub("_$", "", .) # remove string-final underscores
+
+# now see what that did
+
+new_names_1
+
+air_data_1 <- setNames(air_data, new_names_1)  #insert the new names into air_data
+
+                                          # and create a new air_data_1 file
+
+ 
+
+head(air_data_1)          # to see the first 6 rows
+
+# and to see the whole new file in a new tab in this editor pane
+
+# click on air_data_1 in the upper right environment pane
+
+# Save data as a CSV file to your working directory
+
+write_csv(air_data_1, "air_data_1.csv")
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
