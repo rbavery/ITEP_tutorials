@@ -8,26 +8,14 @@ When you execute code within the notebook, the results appear beneath the code.
 Try executing this chunk by placing your cursor in the chunk and pressing *Ctrl+Shift+Enter*. 
 
 
+Tips:
+1. When installing a package, use quotes around the package name.
+2. But to load the library, use no quotes around the package name.
+3. Run each command at a time and record in the console below, by pressing *Ctrl-Enter* anywhere in each line, or group of highlighted lines
+4. If you see warnings in red in the console that is often totally ok. Errors are different than warnings and need to be debugged.
+5. When you see a right-pointing blue caret in the console, then R is done and ready for another command
 
-# depending on which ones your data needs cleaned up
-
-# if you edit some rows out, just don't end on a pipe: %>%
-
-# remember that when installing a package it is in quotes
-
-# but to load into library of this project use no quotes
-
-# run each command at a time and record in the console below, by
-
-# entering cntrol-enter anywhere in each line, or group of selected lines
-
-# if you see warnings in red in the console that is often totally ok
-
-# when you see a right-pointing blue caret in the console, then
-
-# R is done and ready for more
-
-# 1st load the base r library
+# 1st we install and load the readr library
 ```{r}
 
 
