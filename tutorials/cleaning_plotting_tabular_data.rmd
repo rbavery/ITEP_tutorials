@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 # R Markdown Tips
 
@@ -15,7 +17,7 @@ The preview shows you a rendered HTML copy of the contents of the editor. Conseq
 # Loading Packages with pacman in one line
 Tips:
 1. When installing a package with the base R function `install.packages`, use quotes around the package name.
-2. the pacman library simplifies installing and loading packages to a single command, `p_load`. It will only install a packag eif you don't have it already
+2. the pacman library simplifies installing and loading packages to a single command, `p_load`. It will only install a package if you don't have it already
 3. Run each command at a time and record in the console below, by pressing *Ctrl-Enter* anywhere in each line, or group of highlighted lines
 4. If you see warnings in red in the console that is often totally ok. Errors are different than warnings and need to be debugged.
 5. When you see a right-pointing blue caret in the console, then R is done and ready for another command
@@ -29,7 +31,7 @@ pacman::p_load("readr", "knitr")
 #then, pacman::p_load will load it
 ```
 
-# Laoding data with a relative path, using the `..` symbol
+# Loading data with a relative path, using the `..` symbol
 Run commands in this cell line by line with *CNTRL+Enter*
 
 When working in a .Rmd file, the working directory is the location of the .Rmd file. The simplest way to tell R where to find data files is relative to the .Rmd file you are working in. Since this file is in the `tutorials` folder, and this folder is next to the `data` folder, we can specify the location of our file with `"../data/la_jolla_pm25_wind_data.xlsx"`
@@ -68,7 +70,7 @@ print(c("The working directory for this chunk is: ", getwd()))
 
 # Fixing headers (names)
 
-When we look at the column names of the table we read in, we see some problems. There are backslashes `\` to before the quotes. This is because when the `read_excel` function interprets the column names, it decides to put a backslash in front of the double quotes to signify that the double quote is part of the name. There's also quite a few unecessary characters such as `__`, `+`, `'`, and `...` in the column names. 
+When we look at the column names of the table we read in, we see some problems. There are backslashes `\` to before the quotes. This is because when the `read_excel` function interprets the column names, it decides to put a backslash in front of the double quotes to signify that the double quote is part of the name. There's also quite a few unnecessary characters such as `__`, `+`, `'`, and `...` in the column names. 
 
 We can clean these column names with R and reuse these scripts in the future, rather than spending time cleaning multiple files like this one in excel.
 ```{r}
@@ -79,7 +81,7 @@ old_names <- names(air_data)  # make object of the old names
 old_names # this new object shows up in the environment panel in upper right
 ```
 
-We will clean the headers (names) using base R functions like `gsub` and `make.names`, to make sure each column name is unique (no duplicate columns), doesn't have uneccessary characters, and that none of the column names conflict with reserved words in R.
+We will clean the headers (names) using base R functions like `gsub` and `make.names`, to make sure each column name is unique (no duplicate columns), doesn't have unnecessary characters, and that none of the column names conflict with reserved words in R.
 
 We need to load dplyr to use a pipe, which is like a function, and can be thought of as: the input on the left side of the pipe operator `%>%` goes to the next function. Or `x %>% function(x)`
 
@@ -165,7 +167,7 @@ air_data_pm_dbl <- air_data_with_clean_header %>% mutate(pm2_5_conc_ug_m3 = as.n
 air_data_pm_dbl
 ```
 
-We get a warning in red saying "NAs introduced by coercion". "coercion" is when R follows some rules to convert values from one type to another. In this case, the `as.numeric` function will automaitcally change any values with non-numeric characters like "filter error" to NA values.
+We get a warning in red saying "NAs introduced by coercion". "coercion" is when R follows some rules to convert values from one type to another. In this case, the `as.numeric` function will automatically change any values with non-numeric characters like "filter error" to NA values.
 
 Let's try to make our plot again now that the data have the correct type.
 
