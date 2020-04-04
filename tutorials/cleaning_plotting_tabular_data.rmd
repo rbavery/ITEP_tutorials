@@ -2,120 +2,89 @@
 title: "R Notebook"
 output: html_notebook
 ---
+# R Markdown Tips
 
 When you execute code within the notebook, the results appear beneath the code. 
 
-Try executing this chunk by placing your cursor in the chunk and pressing *Ctrl+Shift+Enter*. 
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+# Loading Packages with pacman in one line
 Tips:
-1. When installing a package, use quotes around the package name.
-2. But to load the library, use no quotes around the package name.
+1. When installing a package with the base R function `install.packages`, use quotes around the package name.
+2. the pacman library simplifies installing and loading packages to a single command, `p_load`. It will only install a packag eif you don't have it already
 3. Run each command at a time and record in the console below, by pressing *Ctrl-Enter* anywhere in each line, or group of highlighted lines
 4. If you see warnings in red in the console that is often totally ok. Errors are different than warnings and need to be debugged.
 5. When you see a right-pointing blue caret in the console, then R is done and ready for another command
 
 # 1st we install and load the readr library
 ```{r}
-
-
-install.packages("readr")   # if you have already installed R will restart
-
-                            # which is fine
-
-library(readr)              # this is all you need if you already
-
-                            # did installation of this package to your computer
+# this installs pacman if you don't already have it
+if (!require("pacman")) install.packages("pacman")
+#the pacman::p_load function will install readr if it isn't installed 
+pacman::p_load("readr", "knitr")
+#then, pacman::p_load will load it
 ```
 
+# Laoding data with a relative path, using the `..` symbol
+Run commands in this cell line by line with *CNTRL+Enter*
+
+When working in a .Rmd file, the working directory is the location of the .Rmd file. The simplest way to tell R where to find data files is relative to the .Rmd file you are working in. Since this file is in the `tutorials` folder, and this folder is next to the `data` folder, we can specify the location of our file with `"../data/la_jolla_pm25_wind_data.xlsx"`
+
+If you ever want to see visually where your files and folders exist in Rstudio, use the bottom right Files pane to explore directories. Clicking `..` will take you up a directory level.
+
 ```{r}
-#figure out where the working directory is
-
-getwd()
-
-# the working directory comes back as my desktop, so i want to change that
-
-# i copied the directory path from internet explorer
-
-# but it comes back w backslashes that i need to change
-
-    #to forward slashes"C:\Users\melinda\Dropbox (NAU)\MelindasFoldersDoNotTouch\MelindasFolders\R training with Helen\WindRose
-
-# i used the Edit menu above to Replace and Find with
-
-# just this text selected to become
-
-# C:/Users/melinda/Dropbox (NAU)/MelindasFoldersDoNotTouch/MelindasFolders/R training with Helen/WindRose")
-
-# now i can set the working directory by
-
-setwd("C:/Users/melinda/Dropbox (NAU)/MelindasFoldersDoNotTouch/MelindasFolders/R training with Helen/WindRose")
-
-# and i go up a few lines and run get() to verify it is in the folder i am working from
-
- 
-
-#next load the packages we need to read an excel file and change headers
-
-library(readxl)
-
- 
-
+p_load(readxl)
 # load the data into a dataframe called air_data
+# i get a read warning msg but then the blue caret so we can ignore it
+air_data <- read_excel("../data/la_jolla_pm25_wind_data.xlsx")
+```
 
-# i get a red error msg but then the blue caret so we can ignore it
+# Ways to set the working directory (optional)
+In R scripts, `getwd()` shows you the location you are currently working in, which should be the location of the .R script. However, .Rmd files set the working directory differently `setwd()` needs to be run for every chunk. So `setwd` and `gewd` commands aren't very useful for .Rmd files. What follows is a description of these commands if you ever need to view or set working directories in an R script.
 
-air_data <- read_excel("La_jolla_pm25_wind_data.xls")
+After running `getwd()` Windows users will see a path that looks more similar to this, starting with `C:/` for C drive if you run `getwd()`. There may be spaces in the folder names too:
 
- 
+`C:/Users/melinda/Desktop/ITEP_tutorials/tutorials`
 
-# check the names as below
+If you need to change the working directory to a path that has spaces in it, use a `\` to "escape" the space and treat it as a character like so:
+`C:/Users/melinda\ ronca-battista/Desktop/ITEP_tutorials/tutorials`
+In an R script, you can verify your working directory with `getwd()` to see the folder you are working from. `setwd()` needs to be run from each code chunk if you need to load or write data with a command in that chunk.
 
+```{r}
+# pretend this code chunk is an r script
+# tells you where you are currently located
+getwd()
+# for me this command returns "/home/rave/ITEP_tutorials/tutorials"
+# I want to change this to "/home/rave/ITEP_tutorials/ since this is where my data folder is located, it will make referencing my data folder a bit simpler
+
+setwd("/home/rave/ITEP_tutorials")
+air_data <- read_excel("data/la_jolla_pm25_wind_data.xlsx") # since we changed the working directory, no need for ..
+print(c("The working directory for this chunk is: ", getwd()))
+```
+
+# Fixing headers (names)
+
+When we look at the column names of the table we read in, we see some problems. There are backslashes `\` to before the quotes. This is because when the `read_excel` function interprets the column names, it decides to put a backslash in front of the double quotes to signify that the double quote is part of the name. There's also quite a few unecessary characters such as `__`, `+`, `'`, and `...` in the column names. 
+
+We can clean these column names with R and reuse these scripts in the future, rather than spending time cleaning multiple files like this one in excel.
+```{r}
 names(air_data)
 
- 
-
-# i see a lot to fix in my headers (names), as follows
-
 old_names <- names(air_data)  # make object of the old names
 
-old_names                     # R automatically appended a _1 to the
+old_names # this new object shows up in the environment panel in upper right
+```
 
-                              # repeated Date name (column header)
+We will clean the headers (names) using base R functions like `gsub` and `make.names`, to make sure each column name is unique (no duplicate columns), doesn't have uneccessary characters, and that none of the column names conflict with reserved words in R.
 
-# this new object shows up in the environment panel in upper right
+We need to load dplyr to use a pipe, which is like a function, and can be thought of as: the input on the left side of the pipe operator `%>%` goes to the next function. Or `x %>% function(x)`
 
-# note that it added backslashes \ to before the quotes
-
-# to signify that the dbl quote is part of the string and not an R operator
-
-# next we need to load dplyr to use a pipe, which is like a function, and
-
-# can be thought of as: (x %>% f) means the same as
-
-# f is a function of x, like input-x-goes-to-output which is a
-
-# temporary object in this environment that R can use
-
- 
-
-install.packages("dplyr")
-
-library(dplyr)
-
- 
-
-# clean the headers (names) so they do not contain
-
-    # any parentheses or single or double quotation marks, because
-
-    # those are symbols used in some functions, and also to change
-
-    # all upper case to lower case, and no spaces, periods, or plus signs, and
-
-    # that all headers are unique if R did not do that already
-
-old_names <- names(air_data)  # make object of the old names
+```{r}
+p_load("dplyr")
 
 new_names <- old_names %>%    # make object of the new names to clean up
 
@@ -126,11 +95,8 @@ new_names <- old_names %>%    # make object of the new names to clean up
   gsub("%", "percent", .) %>% # change the symbol % to the word percent
 
   gsub("^[ ]+", "", .) %>%    # this finds any plus signs and removes them
-
                               # the ^ means at the beginning of the string
-
                               # [] means extract, then the + tells R
-
                               # to extract a +, then replace w "nothing""
 
   make.names(.) %>%
@@ -144,58 +110,30 @@ new_names <- old_names %>%    # make object of the new names to clean up
 # see what that did anytime by looking at new_names
 
 new_names
+```
 
-# next, check for column names that are not unique
-
-# The next 8 rows adds the column number to any columns with the same name
-
-# not a big deal unless data has many dozens of columns
-
-# R actually did this already in the names(air_data) in row 40
-
-# but in case that did not happen, rows 79-86 will add _i to column name
-
-dupe_count <- vapply(seq_along(new_names), function(i) {
-
-  sum(new_names[i] == new_names[1:i])
-
-}, integer(1))
-
-new_names[dupe_count > 1] <- paste(
-
-  new_names[dupe_count > 1],
-
-  dupe_count[dupe_count > 1],
-
-  sep = "_"
-
-)
-
- 
-
-# by clicking new_names in the environment pane
-
-# i see the last space turned into an underscore so remove that
-
-# ideally just add the next two lines above before the ) but can do it step-wise
-
-# with another object now we call new_names_1
-
-new_names_1 <- new_names %>% 
+There's still a bit left to clean up, like the trailing underscores and multiple duplicate date columns, but we are closer to having a cleaner table. Even this isn't so bad and we could still use this table for analysis, but maybe not for generating nice looking reports. 
+```{r}
+new_names <- new_names %>% 
 
 gsub("_$", "", .) # remove string-final underscores
+names_mask <- new_names %in% c("date_1","date_6") # this makes a new vector
+names_mask # with TRUE where we want to remove the names and FALSE where we don't
+new_names <- new_names[! names_mask] # ! says make FALSE values TRUE and TRUE values FALSE.
+new_names
+```
 
-# now see what that did
+# Assigning the clean header/column names back to the table
+Up to this point we've been modifying a new variable with the column names, not the original table that we read in with `read_excel`. Now we can set the new names.
 
-new_names_1
+We need to take out unused columns from air_data with names_mask so that new_names and air_data are the same shape.
+```{r}
+# we need to use our mask from the previous cell to get the 7 correct columns. We apply the mask in the column position using [] for indexing
+air_data_with_correct_columns <- air_data[,! names_mask]
+# it's good to make a new variable for the data with clean headers in case we need to refer back to the raw data.
+air_data_with_clean_header <- setNames(air_data_with_correct_columns, new_names)
 
-air_data_1 <- setNames(air_data, new_names_1)  #insert the new names into air_data
-
-                                          # and create a new air_data_1 file
-
- 
-
-head(air_data_1)          # to see the first 6 rows
+head(air_data_with_clean_header)          # to see the first 6 rows
 
 # and to see the whole new file in a new tab in this editor pane
 
@@ -203,11 +141,42 @@ head(air_data_1)          # to see the first 6 rows
 
 # Save data as a CSV file to your working directory
 
-write_csv(air_data_1, "air_data_1.csv")
+write_csv(air_data_with_clean_header, "../data/air_data_with_clean_header.csv")
+```
+# Cleaning Bad Data Values
+
+We're not done with cleaning our data yet! Even though the column names look presentable, whenever we are dealing with physical measurements we usually have missing data values. In our case, these missing data values are reported differently depending on the column, and even change the type of the column from a number to a character. The type change can ruin plots if the plotting is expecting a numerical variable.
+```{r}
+p_load("ggplot2")
+
+ggplot(data=air_data_with_clean_header) +
+  geom_point(aes(x = windspeed_miles_h, y = pm2_5_conc_ug_m3))
+
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+If we look at the variable `air_data_with_clean_header`, we see that there are quite a few cells with "filter error" instead of numbers. This makes the `pm2_5_conc_ug_m3` column have a `chr` type for "character" instead of a `dbl` type for float number.  We will need to change this to a numerical nodata value in order to plot it or do calculations with it. From our plot, we also see that there are multiple values representing no data in this column, which isn't best practice.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+With the `dplyr` `mutate` function, we can set the column pm2_5_conc_ug_m3 to the output of a function. In this case we will set it to the output of `as.numeric(pm2_5_conc_ug_m3)`
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+p_load("dplyr")
+air_data_with_clean_header
+air_data_pm_dbl <- air_data_with_clean_header %>% mutate(pm2_5_conc_ug_m3 = as.numeric(pm2_5_conc_ug_m3))
+air_data_pm_dbl
+```
+
+We get a warning in red saying "NAs introduced by coercion". "coercion" is when R follows some rules to convert values from one type to another. In this case, the `as.numeric` function will automaitcally change any values with non-numeric characters like "filter error" to NA values.
+
+Let's try to make our plot again now that the data have the correct type.
+
+```{r}
+ggplot(air_data_pm_dbl, aes(x=windspeed_miles_h, y = pm2_5_conc_ug_m3)) +
+  geom_point()
+air_data_pm_dbl
+```
+
+## Challenge: plot wind direction on the x axis and pm2_5_conc_ug_m3 on the y axis. You may need to mutate the type of wind direction!
+
+```{r}
+```
+
