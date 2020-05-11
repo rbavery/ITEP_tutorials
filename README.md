@@ -15,17 +15,28 @@ If you'd like to continue the learning after the workshop, check out these resou
 
 ### Past workshop info
 #### Call 2020-01-30: Mapping tutorial
+Instructor: Ryan Avery
 
 See tutorials/mapping_tutorial.rmd and tutorial-pdfs/mapping_tutorial.pdf
 You can run the code at the beginning of the tutorial to install the necessary R packages. You can view this tutorial in pdf form [here](https://github.com/rbavery/ITEP_R_tutorials/blob/master/mapping_tutorial.pdf) and the code that generates it [here](https://github.com/rbavery/ITEP_R_tutorials/blob/master/mapping_tutorial.rmd).
 
 #### Call 2020-02-11: R Markdown tutorial
+Instructor: Kunal Marwaha
 
 See tutorials/Test.Rmd and tutorial-pdfs/Test.html.
-
 https://swcarpentry.github.io/r-novice-gapminder/15-knitr-markdown/
 
 #### Call 2020-04-07 and 2020-04-21: dplyr data cleaning and function piping tutorial
+Instructor: Ryan Avery
 
 See tutorials/cleaning_plotting_tabular_data.rmd and tutorial-pdfs/cleaning_plotting_tabular_data.pdf
 The data file is here: https://github.com/rbavery/ITEP_tutorials/blob/master/data/la_jolla_pm25_wind_data.xlsx 
+
+#### Call 2020-05-04
+Instructor: Angie Reed
+ 
+Introduction to the dataRetrieval package for downloading USGS hydrologic data. See for more details and documentation: https://cran.r-project.org/web/packages/dataRetrieval/vignettes/dataRetrieval.html
+See 2020-01-14_RCall_GetData-USGS-Q.R for the example shown in the lesson. The 2020-05-05_RCall.r file shows some common data munging tasks with the PINTempData.
+
+
+
